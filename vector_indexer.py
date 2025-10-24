@@ -1,62 +1,52 @@
 import os
-import getpass
-from langchain_community.document_loaders import TextLoader # Nouvelle structure d'importation
-from langchain_text_splitters import RecursiveCharacterTextSplitter # CORRECTION: Nouveau chemin pour le TextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings # Nouvelle structure d'importation
-from langchain_community.vectorstores import Chroma
+# Nouvelle importation corrigée pour CharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter
+from langchain_community.document_loaders import TextLoader
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS # Utilisation de FAISS
 
-# --- Configuration et Initialisation ---
+# --- Configuration ---
+SOURCE_FILE = "evenements_reels.txt"
+# Chemin où FAISS sauvegardera l'index et les métadonnées
+INDEX_PATH = "./faiss_index" 
+EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
-# Assurez-vous d'avoir un fichier de données dans le même répertoire.
-# Remplacer 'data.txt' par le nom de votre fichier de données (e.g., 'documents.txt').
-DATA_FILE_PATH = "data.txt" 
-VECTOR_DB_DIR = "./chroma_db"
+# --- 1. Chargement des données ---
 
-# 1. Charger le Document
-try:
-    print(f"Chargement des données depuis {DATA_FILE_PATH}...")
-    # Assurez-vous que ce fichier existe ou remplacez-le par le bon chemin.
-    loader = TextLoader(DATA_FILE_PATH, encoding="utf8")
-    documents = loader.load()
-    print(f"Chargé {len(documents)} document(s).")
-except FileNotFoundError:
-    print(f"ERREUR: Le fichier {DATA_FILE_PATH} est introuvable. Veuillez créer ce fichier.")
-    exit()
-except Exception as e:
-    print(f"Une erreur est survenue lors du chargement: {e}")
-    exit()
+print(f"Chargement des données depuis {SOURCE_FILE}...")
+loader = TextLoader(SOURCE_FILE, encoding='utf-8')
+documents = loader.load()
+print(f"Chargé {len(documents)} document(s).")
 
-# 2. Diviser le Texte (Chunking)
-# Le chunking est essentiel pour le RAG: il divise le texte long en petits morceaux
+# --- 2. Division en morceaux (Chunking) ---
+
 print("Division des documents en morceaux (chunks)...")
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+# Utiliser un séparateur de texte simple pour l'exemple
+text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 texts = text_splitter.split_documents(documents)
 print(f"Création de {len(texts)} morceaux de texte pour l'indexation.")
 
-# 3. Choisir le Modèle d'Embedding
-# Utilisation d'un modèle d'embedding de HuggingFace (par exemple, 'all-MiniLM-L6-v2')
-# Ce modèle convertit le texte en vecteurs.
+# --- 3. Initialisation du modèle d'embedding ---
+
 print("Initialisation du modèle d'embedding HuggingFace...")
-model_name = "sentence-transformers/all-MiniLM-L6-v2"
-embeddings = HuggingFaceEmbeddings(model_name=model_name)
+embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
 
-# 4. Créer et Persister le Vector Store (Chroma)
-# Chroma est la base de données qui stocke les vecteurs et les associe au texte original.
-print(f"Création de l'index vectoriel Chroma dans le répertoire: {VECTOR_DB_DIR}...")
-try:
-    db = Chroma.from_documents(
-        texts, 
-        embeddings, 
-        persist_directory=VECTOR_DB_DIR
-    )
-    db.persist() # Sauvegarde l'index sur le disque
-    print("Indexation terminée avec succès ! La base de données est prête pour la recherche.")
-    print("\n--- PROCHAINE ÉTAPE ---")
-    print("Vous pouvez maintenant créer le script de recherche (rag_query.py) pour effectuer vos tests d'efficacité.")
+# --- 4. Création de l'index vectoriel FAISS ---
 
-except Exception as e:
-    print(f"ÉCHEC DE L'INDEXATION: {e}")
-    print("Vérifiez les dépendances (pip install torch) ou les droits d'accès au répertoire.")
+print(f"Création de l'index vectoriel FAISS dans le répertoire: {INDEX_PATH}...")
 
-# Note : Si vous n'avez pas de fichier 'data.txt', ce script affichera une erreur.
-# Créez un simple fichier 'data.txt' avec du texte pour tester.
+# Créer l'index FAISS à partir des documents et des embeddings
+db = FAISS.from_documents(texts, embeddings)
+
+# S'assurer que le répertoire de sauvegarde existe
+if not os.path.exists(INDEX_PATH):
+    os.makedirs(INDEX_PATH)
+    
+# Sauvegarder l'index localement
+db.save_local(INDEX_PATH)
+
+print("\nIndexation FAISS terminée avec succès !")
+print(f"L'index FAISS est prêt et sauvegardé dans le dossier '{INDEX_PATH}'.")
+
+# --- Note Finale ---
+print("\nL'index a été construit uniquement à partir du fichier '{SOURCE_FILE}'.")
