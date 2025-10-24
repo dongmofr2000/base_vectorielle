@@ -27,7 +27,14 @@
 # Étape 3 : Récupération (Interrogation de l'Index)
 # Une fois l'index créé, lancez le script .\venv\Scripts\python.exe chat_rag.py --doc evenements_reels.pdf. Il chargera l'index et recherchera
 # les 3 morceaux de texte les plus pertinents pour répondre à la question.
-# COMMANDE : .\venv\Scripts\python.exe chat_rag.py --doc evenements_reels.pdf
+# COMMANDE : python .\venv\Scripts\python.exe chat_rag.py --doc evenements_reels.pdf
+
+
+
+Création du fichier chat_rag.py  qui se trouve dans le github 
+Puis je lance la commande : .\venv\Scripts\python.exe chat_rag.py --doc evenements_reels.pdf
+ce fichier permet au chatbot d'interagir avec l'utilisateur 
+
 
 # ====================================================================
 #              FIN DU CONTENU README
