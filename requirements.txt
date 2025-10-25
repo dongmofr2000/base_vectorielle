@@ -23,10 +23,3 @@ REQUIRED_PACKAGES = [
 #    Copiez et exécutez la commande suivante dans votre terminal :
 #    pip install langchain-core langchain-community langchain-text-splitters langchain-huggingface faiss-cpu
 
-# 2. Si vous utilisez Conda pour créer un environnement isolé :
-#    a. Créer l'environnement :
-#       conda create -n rag_project python=3.10
-#    b. Activer l'environnement :
-#       conda activate rag_project
-#    c. Installer les paquets via pip (dans l'environnement activé) :
-#       pip install langchain-core langchain-community langchain-text-splitters langchain-huggingface faiss-cpu
