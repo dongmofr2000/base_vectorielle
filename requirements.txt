@@ -1,0 +1,32 @@
+# ====================================================================
+# CONFIGURATION DES DÉPENDANCES PYTHON POUR LE PROJET RAG
+# ====================================================================
+
+# Liste des paquets requis pour le projet RAG (Retrieval-Augmented Generation)
+# Cette liste correspond au contenu du fichier requirements.txt qui n'a pas pu s'afficher.
+REQUIRED_PACKAGES = [
+    "langchain-core",
+    "langchain-community",
+    "langchain-text-splitters",
+    "langchain-huggingface",
+    "faiss-cpu"
+]
+
+# Commande d'installation complète pour l'environnement pip :
+# pip install langchain-core langchain-community langchain-text-splitters langchain-huggingface faiss-cpu
+
+# ====================================================================
+# INSTRUCTIONS D'INSTALLATION
+# ====================================================================
+
+# 1. Si vous utilisez pip (recommandé) :
+#    Copiez et exécutez la commande suivante dans votre terminal :
+#    pip install langchain-core langchain-community langchain-text-splitters langchain-huggingface faiss-cpu
+
+# 2. Si vous utilisez Conda pour créer un environnement isolé :
+#    a. Créer l'environnement :
+#       conda create -n rag_project python=3.10
+#    b. Activer l'environnement :
+#       conda activate rag_project
+#    c. Installer les paquets via pip (dans l'environnement activé) :
+#       pip install langchain-core langchain-community langchain-text-splitters langchain-huggingface faiss-cpu
