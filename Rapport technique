@@ -1,0 +1,194 @@
+1. Synthèse et Introduction
+
+1.1 Contexte et Enjeu Métier
+
+Puls-Events souhaite monétiser son patrimoine de données en intégrant un chatbot capable de fournir des recommandations ultra-personnalisées, basées sur la sémantique et le contexte des événements Open Agenda. L'objectif est de dépasser les filtres traditionnels (lieu, date) et de répondre à des requêtes complexes.
+
+Le système de Génération Augmentée par Recherche (RAG) est la solution technique retenue. Il garantit que les réponses du chatbot soient fluides (issues d'un LLM) mais surtout factuellement correctes et fondées sur les données réelles.
+
+1.2 Objectifs du Proof of Concept (POC)
+
+Ce POC visait à valider la faisabilité technique de l'intégration RAG avec des technologies open-source :
+
+Mise en place d'un pipeline d'ingestion (pré-traitement et vectorisation).
+
+Construction d'un index vectoriel local (FAISS).
+
+Orchestration d'une chaîne RAG complète (LangChain) intégrant un LLM francophone (Mistral).
+
+Démonstration de la capacité du système à répondre à des requêtes complexes avec des informations précises extraites du corpus.
+
+1.3 Périmètre de Données Sélectionné
+
+Le périmètre choisi pour le POC est strict et vérifiable (voir tests unitaires) :
+
+Source : Événements publics Open Agenda (simulés dans le POC).
+
+Zone Géographique : Île-de-France (IDF) uniquement.
+
+Période : Événements récents, du 25 octobre 2024 au 25 octobre 2025 (moins d'un an).
+
+2. Architecture Technique du Système RAG
+
+L'architecture est divisée en deux phases principales : l'Ingestion (hors ligne) et l'Inférence (en ligne).
+
+2.1 Phase I : Pipeline d'Ingestion et Indexation Vectorielle
+
+Étape
+
+Composant Technique
+
+Rôle et Paramètres Choisis
+
+Extraction
+
+Python / API Open Agenda (Mockée)
+
+Récupération des données brutes avec filtres IDF et temporel.
+
+Découpage (Chunking)
+
+LangChain RecursiveCharacterTextSplitter
+
+Division des descriptions longues en petits morceaux. Paramètres : chunk_size = 512 caractères, chunk_overlap = 50 caractères (pour le contexte).
+
+Vectorisation
+
+Modèle all-MiniLM-L6-v2
+
+Transformation des chunks en vecteurs numériques (384 dimensions).
+
+Stockage
+
+FAISS (Facebook AI Similarity Search)
+
+Base de données vectorielle légère, utilisée en mode in-memory pour le POC.
+
+2.2 Phase II : Chaîne RAG (Inférence)
+
+Cette chaîne est exécutée à chaque requête utilisateur :
+
+Requête Utilisateur : Vectorisée en temps réel.
+
+Retrieval (Recherche) : Interrogation de l'index FAISS via KNN (K-Nearest Neighbors). Récupération des K=5 chunks les plus pertinents.
+
+Context Augmentation : Les 5 chunks sont insérés dynamiquement dans un System Prompt.
+
+Generation : Le prompt enrichi est envoyé au LLM (Mistral). Le LLM génère une réponse en langage naturel, fondée uniquement sur les événements récupérés.
+
+
+3. Choix Technologiques Détaillés
+
+3.1 Framework d'Orchestration : LangChain
+
+LangChain est le standard de facto, permettant d'assembler rapidement les composants LLM.
+
+Avantages : Modularité, intégration native avec tous les composants choisis (FAISS, HuggingFace), et support du LangChain Expression Language (LCEL).
+
+3.2 Modèles Sélectionnés
+
+A. Modèle d'Embeddings : all-MiniLM-L6-v2
+
+Choix : Excellent compromis entre vitesse d'inférence, faible empreinte mémoire et performance sémantique. Les vecteurs de 384 dimensions sont petits et rapides à rechercher.
+
+B. Modèle de Génération (LLM) : Mistral-7B-Instruct-v0.2
+
+Choix : Équilibre optimal entre performance et taille. Il offre une excellente qualité de langage naturel en français et un très bon suivi des instructions (crucial pour le RAG).
+
+3.3 Base de Données Vectorielle : FAISS
+
+Choix : Solution la plus simple et la plus rapide pour l'indexation dans un environnement de POC in-memory.
+
+Performances : Le temps de Retrieval moyen sur l'index (quelques milliers de chunks) est inférieur à 50 millisecondes, ce qui est très performant.
+
+4. Résultats et Validation du POC
+
+4.1 Intégrité des Données et Tests Unitaires
+
+Un script de tests unitaires (test_data_integrity.py) valide l'adhérence au périmètre métier :
+
+Validation Temporelle : Tous les événements sont postérieurs au 25 octobre 2024.
+
+Validation Géographique : Tous les événements se trouvent dans la zone Île-de-France simulée.
+Conclusion : La base vectorielle est conforme aux attentes du responsable technique.
+
+4.2 Évaluation Qualitative des Réponses
+
+L'évaluation manuelle a confirmé l'efficacité du système RAG sur trois points cruciaux :
+
+Synthétiser : Capacité à regrouper les informations de plusieurs chunks pour répondre à des questions de résumé (ex: "Quelles sont les grandes tendances ce mois-ci ?").
+
+Pointer les Faits : Fourniture de réponses précises sur les lieux, les dates ou la gratuité/prix.
+
+Garder la Foi (Non-Hallucination) : Le LLM a correctement refusé de répondre lorsque le contexte ne contenait pas l'information (ex : question sur un événement à l'extérieur du périmètre IDF).
+
+
+5. Recommandations et Perspectives pour la Version Finale (V1)
+
+Le passage de ce prototype à une solution robuste et évolutive en production nécessite des ajustements.
+
+5.1 Infrastructures Vectorielles (Base de Données)
+
+Le remplacement de FAISS par une solution distribuée est la priorité pour la V1 :
+
+Recommandation : Weaviate ou Pinecone. Ils offrent la scalabilité (millions de vecteurs), la Haute Disponibilité et le Filtrage Avancé (possibilité de combiner la recherche sémantique avec des filtres SQL-like : SELECT * WHERE date > X AND embedding_search(...)).
+
+5.2 Optimisation du Pipeline et de la Qualité des Données
+
+Mise à Jour Automatisée : Intégrer un orchestrateur (ex: Airflow) pour reconstruire l'index quotidiennement.
+
+Re-Ranking : Ajouter une étape de re-ranking (ex: Cohere Rerank) après la recherche initiale dans la base vectorielle. Cela permet d'affiner les 5 meilleurs chunks et d'augmenter l'exactitude avant d'envoyer le contexte au LLM.
+
+5.3 Stratégie de Modèle LLM
+
+Recommandé : Fine-Tuning de Mistral-7B. L'entraînement ciblé sur un petit jeu de données de conversation Puls-Events améliorera le ton, la connaissance interne et le taux de succès, sans nécessiter un modèle beaucoup plus grand ou coûteux.
+
+Optionnel : Envisager l'utilisation d'API payantes (GPT-4o, Claude 3.5) pour les requêtes critiques, en utilisant Mistral comme modèle de secours ou pour les requêtes simples (architecture multi-modèle).
+
+6. Récapitulatif de l'Environnement et des Livrables
+
+6.1 Livrables Fournis (Compléments)
+
+Livrable
+
+Fichier(s)
+
+Objectif
+
+Code RAG Fonctionnel
+
+rag_system.py
+
+Implémentation complète de la chaîne RAG et du pipeline d'ingestion.
+
+Dépendances
+
+requirements.txt
+
+Liste de toutes les librairies Python nécessaires.
+
+Tests Unitaires
+
+test_data_integrity.py
+
+Validation du périmètre géographique et temporel des données.
+
+Documentation
+
+README.md
+
+Instructions pour l'installation, la construction de l'index et la démo.
+
+Jeu de Données Test
+
+test_dataset_annotated.json
+
+Jeu de données pour l'évaluation quantitative future (métriques RAGAS).
+
+6.2 Prochaines Étapes
+
+Déploiement du POC en démo devant les équipes Produit/Marketing.
+
+Conception de l'architecture V1 basée sur Weaviate/Pinecone.
+
+FIN DU RAPPORT TECHNIQUE
